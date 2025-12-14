@@ -57,7 +57,7 @@ async function adminLogin(email, password) {
 
     return {success: true, user: data.user};
   } catch (error) {
-    console.error(" Login error:", error);
+    console.error("❌ Login error:", error);
     return {success: false, error: error.message};
   }
 }
@@ -265,7 +265,7 @@ async function addArticleTags(articleId, tagNames) {
       });
     }
   } catch (error) {
-    console.error(" Error adding article tags:", error);
+    console.error("❌ Error adding article tags:", error);
   }
 }
 
@@ -280,7 +280,7 @@ async function fetchCategories() {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error(" Error fetching categories:", error);
+    console.error("❌ Error fetching categories:", error);
     return [];
   }
 }
@@ -297,7 +297,7 @@ async function createCategory(categoryData) {
     if (error) throw error;
     return {success: true, category: data};
   } catch (error) {
-    console.error(" Error creating category:", error);
+    console.error("❌ Error creating category:", error);
     return {success: false, error: error.message};
   }
 }
@@ -318,7 +318,7 @@ async function fetchTags() {
       count: tag.article_tags?.length || 0,
     }));
   } catch (error) {
-    console.error(" Error fetching tags:", error);
+    console.error("❌ Error fetching tags:", error);
     return [];
   }
 }
@@ -335,7 +335,7 @@ async function createTag(tagName) {
     if (error) throw error;
     return {success: true, tag: data};
   } catch (error) {
-    console.error(" Error creating tag:", error);
+    console.error("❌ Error creating tag:", error);
     return {success: false, error: error.message};
   }
 }
@@ -371,7 +371,7 @@ async function getDashboardStats() {
       totalViews,
     };
   } catch (error) {
-    console.error(" Error fetching dashboard stats:", error);
+    console.error("❌ Error fetching dashboard stats:", error);
     return {
       totalArticles: 0,
       publishedArticles: 0,
@@ -380,6 +380,65 @@ async function getDashboardStats() {
     };
   }
 }
+
+// Utility function to format dates
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const options = {month: "short", day: "numeric", year: "numeric"};
+  return date.toLocaleDateString("en-NG", options);
+}
+
+// Global formatting functions for editor
+window.formatText = function (command) {
+  document.execCommand(command, false, null);
+};
+
+window.formatBlock = function (tag) {
+  document.execCommand("formatBlock", false, tag);
+};
+
+window.handleDeleteArticle = async function (id) {
+  if (!confirm("Are you sure you want to delete this article?")) return;
+
+  const result = await deleteArticle(id);
+  if (result.success) {
+    alert("Article deleted successfully!");
+    location.reload();
+  } else {
+    alert("Error deleting article: " + result.error);
+  }
+};
+
+// Render tags in the tag input container
+function renderTags() {
+  const tagContainer = document.getElementById("tagContainer");
+  const tagInput = document.getElementById("tagInput");
+
+  if (!tagContainer) return;
+
+  // Clear container except input
+  tagContainer.innerHTML = "";
+
+  // Add tag items
+  articleTags.forEach((tag, index) => {
+    const tagItem = document.createElement("div");
+    tagItem.className = "tag-item";
+    tagItem.innerHTML = `
+      ${tag}
+      <span class="tag-remove" onclick="removeTag(${index})">&times;</span>
+    `;
+    tagContainer.appendChild(tagItem);
+  });
+
+  // Re-add input
+  tagContainer.appendChild(tagInput);
+}
+
+// Remove tag
+window.removeTag = function (index) {
+  articleTags.splice(index, 1);
+  renderTags();
+};
 
 // PAGE INITIALIZATION
 
@@ -643,18 +702,6 @@ async function filterAndDisplayArticles(searchQuery = "", filters = {}) {
   displayArticlesTable(articles);
 }
 
-async function handleDeleteArticle(id) {
-  if (!confirm("Are you sure you want to delete this article?")) return;
-
-  const result = await deleteArticle(id);
-  if (result.success) {
-    alert("Article deleted successfully!");
-    location.reload();
-  } else {
-    alert("Error deleting article: " + result.error);
-  }
-}
-
 async function loadCategories() {
   const categoriesGrid = document.getElementById("categoriesGrid");
   if (!categoriesGrid) return;
@@ -886,33 +933,15 @@ async function handleArticleSubmit(status) {
         result.error
       }`
     );
-  } // Re-enable buttons
-  if (submitBtn) {
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Publish Article";
-  }
-  if (saveDraftBtn) {
-    saveDraftBtn.disabled = false;
-    saveDraftBtn.textContent = "Save Draft";
-  }
-  window.formatText = function (command) {
-    document.execCommand(command, false, null);
-  };
 
-  window.formatBlock = function (tag) {
-    document.execCommand("formatBlock", false, tag);
-  };
-
-  window.deleteArticle = function (id) {
-    if (confirm("Are you sure you want to delete this article?")) {
-      alert("Article deleted!");
-      location.reload();
+    // Re-enable buttons on error
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Publish Article";
     }
-  };
-
-  function formatDate(dateString) {
-    const date = new Date(dateString);
-    const options = {month: "short", day: "numeric", year: "numeric"};
-    return date.toLocaleDateString("en-NG", options);
+    if (saveDraftBtn) {
+      saveDraftBtn.disabled = false;
+      saveDraftBtn.textContent = "Save Draft";
+    }
   }
 }
